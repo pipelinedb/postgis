@@ -10,6 +10,7 @@
  * Copyright (C) 2009-2011 Pierre Racine <pierre.racine@sbf.ulaval.ca>
  * Copyright (C) 2009-2011 Mateusz Loskot <mateusz@loskot.net>
  * Copyright (C) 2008-2009 Sandro Santilli <strk@keybit.net>
+ * Portions Copyright 2013-2015 PipelineDB
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -103,6 +104,7 @@ static void quicksort(double *left, double *right) {
  * @param cK : number of pixels counted thus far in coverage
  * @param cM : M component of 1-pass stddev for coverage
  * @param cQ : Q component of 1-pass stddev for coverage
+ * @param sum2: sum of the square of each input value, used for combining stddevs
  *
  * @return the summary statistics for a band or NULL
  */
@@ -110,7 +112,7 @@ rt_bandstats
 rt_band_get_summary_stats(
 	rt_band band,
 	int exclude_nodata_value, double sample, int inc_vals,
-	uint64_t *cK, double *cM, double *cQ
+	uint64_t *cK, double *cM, double *cQ, double *sum2
 ) {
 	uint32_t x = 0;
 	uint32_t y = 0;
@@ -321,6 +323,9 @@ rt_band_get_summary_stats(
 						*cM += ((value - *cM ) / *cK);
 					}
 				}
+
+        if (sum2)
+          *sum2 += pow(value, 2);
 
 				/* min/max */
 				if (stats->count < 1) {

@@ -37,7 +37,7 @@ ifeq ($(PG91),yes)
 	
 all: sql/$(EXTENSION)--$(EXTVERSION).sql sql/$(EXTENSION)--unpackaged--$(EXTVERSION).sql sql/$(EXTENSION)--$(EXTVERSION)--$(EXTVERSION)next.sql sql/$(EXTENSION)--$(EXTVERSION)next--$(EXTVERSION).sql sql_minor_upgrade
 
-sql/$(EXTENSION).sql: sql_bits/postgis.sql sql_bits/postgis_comments.sql sql_bits/rtpostgis.sql sql_bits/mark_editable_objects.sql.in sql_bits/raster_comments.sql sql_bits/spatial_ref_sys.sql
+sql/$(EXTENSION).sql: sql_bits/postgis.sql sql_bits/postgis_comments.sql sql_bits/rtpostgis.sql sql_bits/mark_editable_objects.sql.in sql_bits/raster_comments.sql sql_bits/spatial_ref_sys.sql sql_bits/pipeline_gis.sql
 	mkdir -p sql
 	echo '\echo Use "CREATE EXTENSION $(EXTENSION)" to load this file. \quit' > $@
 	cat $^ >> $@
@@ -46,9 +46,9 @@ sql/$(EXTENSION)--$(EXTVERSION).sql: sql/$(EXTENSION).sql
 	mkdir -p sql
 	cp $< $@
 
-sql/$(EXTENSION)--unpackaged--$(EXTVERSION).sql: ../../postgis/postgis.sql ../../raster/rt_pg/rtpostgis.sql ../../utils/create_unpackaged.pl
+sql/$(EXTENSION)--unpackaged--$(EXTVERSION).sql: ../../postgis/postgis.sql ../../raster/rt_pg/rtpostgis.sql ../../utils/create_unpackaged.pl ../../postgis/pipeline_gis.sql
 	mkdir -p sql
-	cat ../../postgis/postgis.sql ../../raster/rt_pg/rtpostgis.sql | $(PERL) ../../utils/create_unpackaged.pl postgis > $@
+	cat ../../postgis/postgis.sql ../../raster/rt_pg/rtpostgis.sql ../../postgis/pipeline_gis.sql | $(PERL) ../../utils/create_unpackaged.pl postgis > $@
 	
 #this is a cludge to allow upgrading from same SVN to same SVN
 sql/$(EXTENSION)--$(EXTVERSION)--$(EXTVERSION)next.sql: sql_bits/postgis_raster_upgrade_minor.sql
@@ -64,11 +64,14 @@ sql_bits/spatial_ref_sys.sql: ../../spatial_ref_sys.sql
 sql_bits/postgis.sql: ../../postgis/postgis.sql
 	sed -e 's/BEGIN;//g' -e 's/COMMIT;//g'  $< > $@
 
+sql_bits/pipeline_gis.sql: ../../postgis/pipeline_gis.sql
+	sed -e 's/BEGIN;//g' -e 's/COMMIT;//g'  $< > $@
+
 ../../doc/postgis_comments.sql:
 	$(MAKE) -C ../../doc comments
 
-sql_bits/postgis_comments.sql: ../../doc/postgis_comments.sql
-	cp $< $@
+sql_bits/postgis_comments.sql: 
+	touch $@
 
 #strip BEGIN/COMMIT since these are not allowed in extensions
 sql_bits/rtpostgis.sql: ../../raster/rt_pg/rtpostgis.sql
@@ -98,13 +101,13 @@ sql_bits/postgis_upgrade.sql: ../../postgis/postgis_upgrade.sql
 ../../doc/raster_comments.sql:
 	$(MAKE) -C ../../doc comments
 
-sql_bits/raster_comments.sql: ../../doc/raster_comments.sql
-	cp $< $@
+sql_bits/raster_comments.sql: 
+	touch $@
 
 #postgis_raster_upgrade_minor.sql is the one that contains both postgis AND raster
 #TODO: come up with a better name
 #TODO: what about postgis_drop_after.sql ? where does it fit ??
-sql_bits/postgis_raster_upgrade_minor.sql: ../postgis_extension_helper.sql sql_bits/postgis_upgrade.sql sql_bits/rtpostgis_upgrade.sql ../../doc/raster_comments.sql ../../doc/postgis_comments.sql ../postgis_extension_helper_uninstall.sql
+sql_bits/postgis_raster_upgrade_minor.sql: ../postgis_extension_helper.sql sql_bits/postgis_upgrade.sql sql_bits/rtpostgis_upgrade.sql sql_bits/raster_comments.sql sql_bits/postgis_comments.sql ../postgis_extension_helper_uninstall.sql
 	echo '\echo Use "CREATE EXTENSION $(EXTENSION)" to load this file. \quit' > $@
 	cat $^ >> $@
 

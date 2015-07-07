@@ -2,7 +2,8 @@
  *
  * PostGIS - Spatial Types for PostgreSQL
  * http://postgis.net
- * Copyright 2009 Paul Ramsey <pramsey@opengeo.org>
+ * Portions Copyright 2009 Paul Ramsey <pramsey@opengeo.org>
+ * Portions Copyright 2013-2015 PipelineDB
  *
  * This is free software; you can redistribute and/or modify it under
  * the terms of the GNU General Public Licence. See the COPYING file.
@@ -13,6 +14,8 @@
 #include "fmgr.h"
 #include "funcapi.h"
 #include "access/tupmacs.h"
+#include "lib/stringinfo.h"
+#include "libpq/pqformat.h"
 #include "utils/array.h"
 #include "utils/lsyscache.h"
 
@@ -93,6 +96,79 @@ pgis_abs_out(PG_FUNCTION_ARGS)
 	ereport(ERROR,(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 	               errmsg("function %s not implemented", __func__)));
 	PG_RETURN_POINTER(NULL);
+}
+
+/*
+ * Serializes as pgis_abs
+ */
+PG_FUNCTION_INFO_V1(pgis_abs_send);
+Datum
+pgis_abs_send(PG_FUNCTION_ARGS)
+{
+	pgis_abs *p = (pgis_abs *) PG_GETARG_POINTER(0);
+	ArrayType *arr = DirectFunctionCall1(arrayaggstatesend, (Datum) p->a);
+
+	PG_RETURN_ARRAYTYPE_P(arr);
+}
+
+/*
+ * Deserializes a pgis_abs
+ */
+PG_FUNCTION_INFO_V1(pgis_abs_recv);
+Datum
+pgis_abs_recv(PG_FUNCTION_ARGS)
+{
+	MemoryContext context;
+	MemoryContext old;
+	pgis_abs *result;
+	ArrayType *arr;
+
+	if (!AggCheckCallContext(fcinfo, &context))
+		context = fcinfo->flinfo->fn_mcxt;
+
+	old = MemoryContextSwitchTo(context);
+
+	arr = (ArrayType *) PG_GETARG_ARRAYTYPE_P_COPY(0);
+	fcinfo->arg[0] = (Datum) arr;
+	result = palloc0(sizeof(pgis_abs));
+	result->a = (ArrayBuildState *) arrayaggstaterecv(fcinfo);
+
+	MemoryContextSwitchTo(old);
+
+	PG_RETURN_POINTER(result);
+}
+
+/*
+ * Combines two pgis_abs transition states into one
+ */
+PG_FUNCTION_INFO_V1(pgis_geometry_accum_combinefn);
+Datum
+pgis_geometry_accum_combinefn(PG_FUNCTION_ARGS)
+{
+	MemoryContext old;
+	MemoryContext aggcontext;
+	pgis_abs *state = PG_ARGISNULL(0) ? NULL : (pgis_abs *) PG_GETARG_POINTER(0);
+	pgis_abs *incoming = (pgis_abs *) PG_GETARG_POINTER(1);
+	int i;
+
+	if (!AggCheckCallContext(fcinfo, &aggcontext))
+		elog(ERROR, "pgis_geometry_accum_combinefn called in non-aggregate context");
+
+	if (state == NULL)
+		PG_RETURN_POINTER(incoming);
+
+	old = MemoryContextSwitchTo(aggcontext);
+
+	for (i=0; i<incoming->a->nelems; i++)
+	{
+		state->a = accumArrayResult(state->a,
+				incoming->a->dvalues[i], incoming->a->dnulls[i],
+				incoming->a->element_type, aggcontext);
+	}
+
+	MemoryContextSwitchTo(old);
+
+	PG_RETURN_POINTER(state);
 }
 
 /**

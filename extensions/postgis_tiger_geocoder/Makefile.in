@@ -128,8 +128,8 @@ sql_bits/add_search_path.sql: sql_bits/add_search_path.sql.in
 ../../doc/tiger_geocoder_comments.sql:
 	$(MAKE) -C ../../doc comments
 	
-sql_bits/tiger_geocoder_comments.sql: ../../doc/tiger_geocoder_comments.sql
-	cp $< $@
+sql_bits/tiger_geocoder_comments.sql:
+	touch $@
 	
 #grep all lines that start with CREATE OR REPLACE FUNCTION, TRIGGER...
 #then replace CREATE OR REPLACE .. with ALTER EXTENSION..;

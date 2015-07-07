@@ -3,6 +3,7 @@ dnl *
 dnl * PostGIS - Spatial Types for PostgreSQL
 dnl * http://postgis.net
 dnl * Copyright 2008 Mark Cave-Ayland
+dnl * Portions Copyright 2013-2015 PipelineDB
 dnl *
 dnl * This is free software; you can redistribute and/or modify it under
 dnl * the terms of the GNU General Public Licence. See the COPYING file.
@@ -162,7 +163,7 @@ dnl
 dnl Search for xsltproc which is required for building documentation
 dnl
 
-CAN_BUILD_COMMENTS=yes
+CAN_BUILD_COMMENTS=no
 
 AC_PATH_PROG([XSLTPROC], [xsltproc], [])
 if test "x$XSLTPROC" = "x"; then
@@ -373,16 +374,16 @@ if test "x$PG_CONFIG" = "xno"; then
 
 elif test "x$PG_CONFIG" = "x"; then
 	dnl PG_CONFIG was not specified, so search within the current path
-	AC_PATH_PROG([PG_CONFIG], [pg_config])
+	AC_PATH_PROG([PG_CONFIG], [pipeline-config])
 
 	dnl If we couldn't find pg_config, display an error
 	if test "x$PG_CONFIG" = "x"; then
-		AC_MSG_ERROR([could not find pg_config within the current path. You may need to try re-running configure with a --with-pg_config parameter.])
+		AC_MSG_ERROR([could not find pipeline-config within the current path. You may need to try re-running configure with a --with-pg_config parameter.])
 	fi
 else
 	dnl PG_CONFIG was specified; display a message to the user
 	if test "x$PG_CONFIG" = "xyes"; then
-		AC_MSG_ERROR([you must specify a parameter to --with-pgconfig, e.g. --with-pgconfig=/path/to/pg_config])
+		AC_MSG_ERROR([you must specify a parameter to --with-pgconfig, e.g. --with-pgconfig=/path/to/pipeline-config])
 	else
 		if test -f $PG_CONFIG; then
 			AC_MSG_RESULT([Using user-specified pg_config file: $PG_CONFIG])
@@ -1284,9 +1285,6 @@ AC_OUTPUT([GNUmakefile
    topology/Makefile 
    topology/test/Makefile 
    regress/Makefile 
-   doc/Makefile 
-   doc/Makefile.comments 
-   doc/html/image_src/Makefile 
    utils/Makefile 
    $RT_MAKEFILE_LIST])
     

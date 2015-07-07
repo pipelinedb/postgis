@@ -3,6 +3,7 @@
 # * PostGIS - Spatial Types for PostgreSQL
 # * http://postgis.net
 # * Copyright 2008 Mark Cave-Ayland
+# * Portions Copyright 2013-2015 PipelineDB
 # *
 # * This is free software; you can redistribute and/or modify it under
 # * the terms of the GNU General Public Licence. See the COPYING file.
@@ -14,11 +15,11 @@ MODULE_big=postgis-@POSTGIS_MAJOR_VERSION@.@POSTGIS_MINOR_VERSION@
 MODULEDIR=contrib/$(MODULE_big)
 
 # Files to be copied to the contrib/ directory
-SQL_built=postgis.sql uninstall_postgis.sql postgis_upgrade.sql  legacy.sql uninstall_legacy.sql legacy_minimal.sql legacy_gist.sql 
+SQL_built=postgis.sql uninstall_postgis.sql postgis_upgrade.sql  legacy.sql uninstall_legacy.sql legacy_minimal.sql legacy_gist.sql pipeline_gis.sql
 DATA=../spatial_ref_sys.sql
 
 # SQL objects (files requiring pre-processing)
-SQL_objs=postgis.sql legacy.sql legacy_minimal.sql
+SQL_objs=postgis.sql legacy.sql legacy_minimal.sql pipeline_gis.sql
 
 GEOM_BACKEND_OBJ = lwgeom_geos.o
 SFCGAL_BACKEND_OBJ = lwgeom_sfcgal.o
