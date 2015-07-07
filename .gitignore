@@ -2,8 +2,9 @@
 *.la
 .libs
 *.lo
+*~
 gmon.out
-install-sh
+/install-sh
 postgis_svn_revision.h
 aclocal.m4
 autom4te.cache/
@@ -86,6 +87,7 @@ postgis/legacy_gist.sql
 postgis/legacy_minimal.sql
 postgis/legacy.sql
 postgis/postgis.sql
+postgis/pipeline_gis.sql
 postgis/postgis_upgrade.sql*
 postgis/sfcgal_upgrade.sql*
 postgis/sqldefines.h
@@ -128,11 +130,8 @@ topology/test/load_topology.sql
 topology/test/topo_predicates.sql
 topology/test/regress/topogeo_addlinestring_expected
 topology/topology_drop_after.sql
-topology/topology_drop_after.sql.in
 topology/topology_drop_before.sql
-topology/topology_drop_before.sql.in
 topology/topology.sql
-topology/topology.sql.in
 topology/topology_upgrade.sql*
 topology/uninstall_topology.sql
 libpgcommon/Makefile

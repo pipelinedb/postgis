@@ -11,6 +11,7 @@
  * Copyright (C) 2009-2011 Pierre Racine <pierre.racine@sbf.ulaval.ca>
  * Copyright (C) 2009-2011 Mateusz Loskot <mateusz@loskot.net>
  * Copyright (C) 2008-2009 Sandro Santilli <strk@keybit.net>
+ * Portions Copyright 2013-2015 PipelineDB
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -44,6 +45,8 @@
 #endif
 
 #include "rtpostgis.h"
+#include "lib/stringinfo.h"
+#include "libpq/pqformat.h"
 
 /* Get summary stats */
 Datum RASTER_summaryStats(PG_FUNCTION_ARGS);
@@ -138,7 +141,7 @@ Datum RASTER_summaryStats(PG_FUNCTION_ARGS)
 	}
 
 	/* we don't need the raw values, hence the zero parameter */
-	stats = rt_band_get_summary_stats(band, (int) exclude_nodata_value, sample, 0, NULL, NULL, NULL);
+	stats = rt_band_get_summary_stats(band, (int) exclude_nodata_value, sample, 0, NULL, NULL, NULL, NULL);
 	rt_band_destroy(band);
 	rt_raster_destroy(raster);
 	PG_FREE_IF_COPY(pgraster, 0);
@@ -373,7 +376,7 @@ Datum RASTER_summaryStatsCoverage(PG_FUNCTION_ARGS)
 		}
 
 		/* we don't need the raw values, hence the zero parameter */
-		stats = rt_band_get_summary_stats(band, (int) exclude_nodata_value, sample, 0, &cK, &cM, &cQ);
+		stats = rt_band_get_summary_stats(band, (int) exclude_nodata_value, sample, 0, &cK, &cM, &cQ, NULL);
 
 		rt_band_destroy(band);
 		rt_raster_destroy(raster);
@@ -546,6 +549,7 @@ rtpg_summarystats_arg_init() {
 	arg->stats->min = 0;
 	arg->stats->max = 0;
 	arg->stats->sum = 0;
+  arg->stats->sum2 = 0;
 	arg->stats->mean = 0;
 	arg->stats->stddev = -1;
 	arg->stats->values = NULL;
@@ -560,6 +564,164 @@ rtpg_summarystats_arg_init() {
 	arg->sample = 1;
 
 	return arg;
+}
+
+/*
+ * Serialize a rtpg_summarystats_arg
+ */
+PG_FUNCTION_INFO_V1(summarystatssend);
+Datum
+summarystatssend(PG_FUNCTION_ARGS)
+{
+	StringInfoData buf;
+	rtpg_summarystats_arg state = (rtpg_summarystats_arg) PG_GETARG_POINTER(0);
+	int i;
+	int nbytes;
+	int vlen;
+	bytea *result;
+
+	initStringInfo(&buf);
+
+	pq_sendint64(&buf, state->cK);
+	pq_sendfloat8(&buf, state->cM);
+	pq_sendfloat8(&buf, state->cQ);
+
+	pq_sendint(&buf, state->band_index, sizeof(state->band_index));
+	pq_sendint(&buf, state->exclude_nodata_value, 1);
+	pq_sendfloat8(&buf, state->sample);
+
+	pq_sendfloat8(&buf, state->stats->sample);
+	pq_sendint(&buf, state->stats->count, sizeof(state->stats->count));
+	pq_sendfloat8(&buf, state->stats->min);
+	pq_sendfloat8(&buf, state->stats->max);
+	pq_sendfloat8(&buf, state->stats->sum);
+	pq_sendfloat8(&buf, state->stats->sum2);
+	pq_sendfloat8(&buf, state->stats->mean);
+	pq_sendfloat8(&buf, state->stats->stddev);
+	pq_sendint(&buf, state->stats->sorted, sizeof(state->stats->sorted));
+
+	vlen = state->stats->values == NULL ? 0 : state->stats->count;
+	pq_sendint(&buf, vlen, sizeof(vlen));
+	for (i=0; i<vlen; i++)
+	{
+		pq_sendfloat8(&buf, state->stats->values[i]);
+	}
+
+	nbytes = buf.len - buf.cursor;
+	result = (bytea *) palloc(nbytes + VARHDRSZ);
+	SET_VARSIZE(result, nbytes + VARHDRSZ);
+
+	pq_copymsgbytes(&buf, VARDATA(result), nbytes);
+
+	PG_RETURN_POINTER(result);
+}
+
+/*
+ * Deserialize a rtpg_summarystats_arg
+ */
+PG_FUNCTION_INFO_V1(summarystatsrecv);
+Datum
+summarystatsrecv(PG_FUNCTION_ARGS)
+{
+	MemoryContext context;
+	MemoryContext old;
+	bytea *bytesin;
+	StringInfoData buf;
+	rtpg_summarystats_arg result;
+	int nbytes;
+	int vlen;
+
+	if (!AggCheckCallContext(fcinfo, &context))
+		context = fcinfo->flinfo->fn_mcxt;
+
+	old = MemoryContextSwitchTo(context);
+
+	bytesin = (bytea *) PG_GETARG_BYTEA_P(0);
+	nbytes = VARSIZE(bytesin) - VARHDRSZ;
+
+	initStringInfo(&buf);
+	appendBinaryStringInfo(&buf, VARDATA(bytesin), nbytes);
+
+	result = palloc0(sizeof(struct rtpg_summarystats_arg_t));
+
+	result->cK = pq_getmsgint64(&buf);
+	result->cM = pq_getmsgfloat8(&buf);
+	result->cQ = pq_getmsgfloat8(&buf);
+
+	result->band_index = pq_getmsgint(&buf, sizeof(result->band_index));
+	result->exclude_nodata_value = pq_getmsgint(&buf, 1);
+	result->sample = pq_getmsgfloat8(&buf);
+
+	result->stats = palloc0(sizeof(struct rt_bandstats_t));
+	result->stats->sample = pq_getmsgfloat8(&buf);
+	result->stats->count = pq_getmsgint(&buf, sizeof(result->stats->count));
+	result->stats->min = pq_getmsgfloat8(&buf);
+	result->stats->max = pq_getmsgfloat8(&buf);
+	result->stats->sum = pq_getmsgfloat8(&buf);
+	result->stats->sum2 = pq_getmsgfloat8(&buf);
+	result->stats->mean = pq_getmsgfloat8(&buf);
+	result->stats->stddev = pq_getmsgfloat8(&buf);
+	result->stats->sorted = pq_getmsgint(&buf, sizeof(result->stats->sorted));
+	result->stats->values = NULL;
+
+	vlen = pq_getmsgint(&buf, sizeof(vlen));
+	if (vlen > 0)
+	{
+		int i;
+
+		result->stats->values = palloc0(vlen * sizeof(double));
+		for (i=0; i<vlen; i++)
+		{
+			result->stats->values[i] = pq_getmsgfloat8(&buf);
+		}
+	}
+
+	MemoryContextSwitchTo(old);
+
+	PG_RETURN_POINTER(result);
+}
+
+/*
+ * Combines two rtpg_summarystats_args into one
+ */
+PG_FUNCTION_INFO_V1(RASTER_summaryStats_combinefn);
+Datum RASTER_summaryStats_combinefn(PG_FUNCTION_ARGS)
+{
+	MemoryContext old;
+	MemoryContext aggcontext;
+	rtpg_summarystats_arg state = PG_ARGISNULL(0) ? NULL : (rtpg_summarystats_arg) PG_GETARG_POINTER(0);
+	rtpg_summarystats_arg incoming = (rtpg_summarystats_arg) PG_GETARG_POINTER(1);
+	int n;
+	double s;
+	double s2;
+
+	if (!AggCheckCallContext(fcinfo, &aggcontext))
+		elog(ERROR, "_summaryStats_combinefn called in non-aggregate context");
+
+	if (state == NULL)
+		PG_RETURN_POINTER(incoming);
+
+	old = MemoryContextSwitchTo(aggcontext);
+
+	state->cK += incoming->cK;
+	state->cQ += incoming->cQ;
+	state->cM += incoming->cM;
+	state->stats->sum += incoming->stats->sum;
+	state->stats->sum2 += incoming->stats->sum2;
+	state->stats->count += incoming->stats->count;
+	state->stats->min = Min(state->stats->min, incoming->stats->min);
+	state->stats->max = Max(state->stats->max, incoming->stats->max);
+
+	n = state->stats->count;
+	s = state->stats->sum;
+	s2 = state->stats->sum2;
+
+	/* numerator of final stddev formula's radicand */
+	state->cQ = (((n * s2) - s * s) / n);
+
+	MemoryContextSwitchTo(old);
+
+	PG_RETURN_POINTER(state);
 }
 
 PG_FUNCTION_INFO_V1(RASTER_summaryStats_transfn);
@@ -775,7 +937,7 @@ Datum RASTER_summaryStats_transfn(PG_FUNCTION_ARGS)
 	stats = rt_band_get_summary_stats(
 		band, (int) state->exclude_nodata_value,
 		state->sample, 0,
-		&(state->cK), &(state->cM), &(state->cQ)
+		&(state->cK), &(state->cM), &(state->cQ), &(state->stats->sum2)
 	);
 
 	rt_band_destroy(band);
@@ -1097,7 +1259,7 @@ Datum RASTER_histogram(PG_FUNCTION_ARGS)
 		}
 
 		/* get stats */
-		stats = rt_band_get_summary_stats(band, (int) exclude_nodata_value, sample, 1, NULL, NULL, NULL);
+		stats = rt_band_get_summary_stats(band, (int) exclude_nodata_value, sample, 1, NULL, NULL, NULL, NULL);
 		rt_band_destroy(band);
 		rt_raster_destroy(raster);
 		PG_FREE_IF_COPY(pgraster, 0);
@@ -1562,7 +1724,7 @@ Datum RASTER_histogramCoverage(PG_FUNCTION_ARGS)
 			}
 
 			/* we need the raw values, hence the non-zero parameter */
-			stats = rt_band_get_summary_stats(band, (int) exclude_nodata_value, sample, 1, NULL, NULL, NULL);
+			stats = rt_band_get_summary_stats(band, (int) exclude_nodata_value, sample, 1, NULL, NULL, NULL, NULL);
 
 			rt_band_destroy(band);
 			rt_raster_destroy(raster);
@@ -1880,7 +2042,7 @@ Datum RASTER_quantile(PG_FUNCTION_ARGS)
 		}
 
 		/* get stats */
-		stats = rt_band_get_summary_stats(band, (int) exclude_nodata_value, sample, 1, NULL, NULL, NULL);
+		stats = rt_band_get_summary_stats(band, (int) exclude_nodata_value, sample, 1, NULL, NULL, NULL, NULL);
 		rt_band_destroy(band);
 		rt_raster_destroy(raster);
 		PG_FREE_IF_COPY(pgraster, 0);

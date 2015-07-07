@@ -6,6 +6,7 @@
 --
 -- Copyright (C) 2010, 2011 Sandro Santilli <strk@keybit.net>
 -- Copyright (C) 2005 Refractions Research Inc.
+-- Portions Copyright 2013-2015 PipelineDB
 --
 -- This is free software; you can redistribute and/or modify it under
 -- the terms of the GNU General Public Licence. See the COPYING file.
@@ -2011,5 +2012,29 @@ CREATE OR REPLACE FUNCTION topology.postgis_topology_scripts_installed() RETURNS
 
 -- Make sure topology is in database search path --
 SELECT topology.AddToSearchPath('topology');
+
+-------------------------------------------------------------------------------
+-- TopoElementArray_agg combiner
+-------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION topology.TopoElementArray_combine(state topology.TopoElementArray, incoming topology.TopoElementArray)
+	RETURNS topology.TopoElementArray
+	AS $$
+	BEGIN
+		IF state IS NULL THEN
+			RETURN incoming;
+		END IF;
+
+		state := state::int[][] || incoming::int[][];
+
+		RETURN state;
+	END
+	$$ LANGUAGE 'plpgsql' IMMUTABLE;
+
+INSERT INTO pipeline_combine VALUES (
+0,
+'topology.TopoElementArray_append',
+0, 0, 'topology.TopoElementArray_combine',
+(SELECT oid FROM pg_type WHERE typname = 'topoelementarray'));
 
 COMMIT;

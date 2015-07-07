@@ -4,6 +4,7 @@
  *
  * Copyright (C) 2012 Regents of the University of California
  *   <bkpark@ucdavis.edu>
+ * Portions Copyright 2013-2015 PipelineDB
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -60,7 +61,7 @@ static void test_band_stats() {
 	rt_band_get_nodata(band, &nodata);
 	CU_ASSERT_DOUBLE_EQUAL(nodata, 0, DBL_EPSILON);
 
-	stats = (rt_bandstats) rt_band_get_summary_stats(band, 1, 0, 1, NULL, NULL, NULL);
+	stats = (rt_bandstats) rt_band_get_summary_stats(band, 1, 0, 1, NULL, NULL, NULL, NULL);
 	CU_ASSERT(stats != NULL);
 	CU_ASSERT_DOUBLE_EQUAL(stats->min, 1, DBL_EPSILON);
 	CU_ASSERT_DOUBLE_EQUAL(stats->max, 198, DBL_EPSILON);
@@ -84,7 +85,7 @@ static void test_band_stats() {
 	rtdealloc(stats->values);
 	rtdealloc(stats);
 
-	stats = (rt_bandstats) rt_band_get_summary_stats(band, 1, 0.1, 1, NULL, NULL, NULL);
+	stats = (rt_bandstats) rt_band_get_summary_stats(band, 1, 0.1, 1, NULL, NULL, NULL, NULL);
 	CU_ASSERT(stats != NULL);
 
 	quantile = (rt_quantile) rt_band_get_quantiles(stats, NULL, 0, &count);
@@ -103,19 +104,19 @@ static void test_band_stats() {
 	rtdealloc(stats->values);
 	rtdealloc(stats);
 
-	stats = (rt_bandstats) rt_band_get_summary_stats(band, 1, 0.15, 0, NULL, NULL, NULL);
+	stats = (rt_bandstats) rt_band_get_summary_stats(band, 1, 0.15, 0, NULL, NULL, NULL, NULL);
 	CU_ASSERT(stats != NULL);
 	rtdealloc(stats);
 
-	stats = (rt_bandstats) rt_band_get_summary_stats(band, 1, 0.2, 0, NULL, NULL, NULL);
+	stats = (rt_bandstats) rt_band_get_summary_stats(band, 1, 0.2, 0, NULL, NULL, NULL, NULL);
 	CU_ASSERT(stats != NULL);
 	rtdealloc(stats);
 
-	stats = (rt_bandstats) rt_band_get_summary_stats(band, 1, 0.25, 0, NULL, NULL, NULL);
+	stats = (rt_bandstats) rt_band_get_summary_stats(band, 1, 0.25, 0, NULL, NULL, NULL, NULL);
 	CU_ASSERT(stats != NULL);
 	rtdealloc(stats);
 
-	stats = (rt_bandstats) rt_band_get_summary_stats(band, 0, 0, 1, NULL, NULL, NULL);
+	stats = (rt_bandstats) rt_band_get_summary_stats(band, 0, 0, 1, NULL, NULL, NULL, NULL);
 	CU_ASSERT(stats != NULL);
 	CU_ASSERT_DOUBLE_EQUAL(stats->min, 0, DBL_EPSILON);
 	CU_ASSERT_DOUBLE_EQUAL(stats->max, 198, DBL_EPSILON);
@@ -127,7 +128,7 @@ static void test_band_stats() {
 	rtdealloc(stats->values);
 	rtdealloc(stats);
 
-	stats = (rt_bandstats) rt_band_get_summary_stats(band, 0, 0.1, 1, NULL, NULL, NULL);
+	stats = (rt_bandstats) rt_band_get_summary_stats(band, 0, 0.1, 1, NULL, NULL, NULL, NULL);
 	CU_ASSERT(stats != NULL);
 
 	quantile = (rt_quantile) rt_band_get_quantiles(stats, NULL, 0, &count);
