@@ -3,6 +3,7 @@
 # * PostGIS - Spatial Types for PostgreSQL
 # * http://postgis.net
 # * Copyright 2008 Mark Cave-Ayland
+# * Portions Copyright 2013-2015 PipelineDB
 # *
 # * This is free software; you can redistribute and/or modify it under
 # * the terms of the GNU General Public Licence. See the COPYING file.
@@ -24,6 +25,9 @@ LIBTOOL = @LIBTOOL@
 
 SOVER = @POSTGIS_MAJOR_VERSION@.@POSTGIS_MINOR_VERSION@.@POSTGIS_MICRO_VERSION@
 
+PG_CONFIG = @PG_CONFIG@
+LIB_INSTALL_PATH = $(shell $(PG_CONFIG) --libdir)
+LIB_INCLUDE_PATH = $(shell $(PG_CONFIG) --includedir)
 
 YACC=@YACC@
 LEX=@LEX@
@@ -120,8 +124,8 @@ install: install-liblwgeom
 uninstall: uninstall-liblwgeom
 
 install-liblwgeom: liblwgeom.la
-	$(LIBTOOL) --mode=install $(INSTALL) liblwgeom.la "$(DESTDIR)$(libdir)/liblwgeom.la"
-	$(INSTALL) liblwgeom.h "$(DESTDIR)$(includedir)/liblwgeom.h"
+	$(LIBTOOL) --mode=install $(INSTALL) liblwgeom.la "$(LIB_INSTALL_PATH)/liblwgeom.la"
+	$(INSTALL) -m 0644 liblwgeom.h "$(LIB_INCLUDE_PATH)/liblwgeom.h"
 
 uninstall-liblwgeom:
 	$(LIBTOOL) --mode=uninstall rm -f "$(DESTDIR)$(libdir)/liblwgeom.la"

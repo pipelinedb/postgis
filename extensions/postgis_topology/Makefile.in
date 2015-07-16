@@ -55,8 +55,8 @@ sql_bits/topology.sql: ../../topology/topology.sql
 ../../doc/topology_comments.sql:
 	$(MAKE) -C ../../doc comments
 	
-sql_bits/topology_comments.sql: ../../doc/topology_comments.sql
-	cp $< $@
+sql_bits/topology_comments.sql: 
+	touch $@
 	
 sql/$(EXTENSION)--unpackaged--$(EXTVERSION).sql: ../../topology/topology.sql ../../utils/create_unpackaged.pl
 	mkdir -p sql
