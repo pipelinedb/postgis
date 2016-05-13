@@ -2,6 +2,8 @@
  *
  * BOX3D IO and conversions
  *
+ * Portions Copyright 2013-2015 PipelineDB
+ *
  **********************************************************************/
 
 #include "postgres.h"
@@ -338,6 +340,31 @@ Datum BOX3D_zmax(PG_FUNCTION_ARGS)
 {
 	BOX3D *box = (BOX3D *)PG_GETARG_POINTER(0);
 	PG_RETURN_FLOAT8(Max(box->zmin, box->zmax));
+}
+
+PG_FUNCTION_INFO_V1(BOX3D_combine_3d);
+Datum BOX3D_combine_3d(PG_FUNCTION_ARGS)
+{
+	BOX3D *state;
+	BOX3D *incoming = (BOX3D *) PG_GETARG_POINTER(1);
+
+	if (PG_ARGISNULL(0))
+	{
+		if (PG_ARGISNULL(1))
+			PG_RETURN_NULL();
+		PG_RETURN_POINTER(incoming);
+	}
+
+	state = (BOX3D *) PG_GETARG_POINTER(0);
+
+	state->xmax = Max(state->xmax, incoming->xmax);
+	state->ymax = Max(state->ymax, incoming->ymax);
+	state->zmax = Max(state->zmax, incoming->zmax);
+	state->xmin = Min(state->xmin, incoming->xmin);
+	state->ymin = Min(state->ymin, incoming->ymin);
+	state->zmin = Min(state->zmin, incoming->zmin);
+
+	PG_RETURN_POINTER(state);
 }
 
 /**

@@ -3,6 +3,7 @@
 # * PostGIS - Spatial Types for PostgreSQL
 # * http://postgis.net
 # * Copyright 2008 Mark Cave-Ayland
+# * Portions Copyright 2013-2016 PipelineDB
 # *
 # * This is free software; you can redistribute and/or modify it under
 # * the terms of the GNU General Public Licence. See the COPYING file.
@@ -14,11 +15,11 @@ MODULE_big=postgis-@POSTGIS_MAJOR_VERSION@.@POSTGIS_MINOR_VERSION@
 MODULEDIR=contrib/$(MODULE_big)
 
 # Files to be copied to the contrib/ directory
-SQL_built=postgis.sql uninstall_postgis.sql postgis_upgrade.sql postgis_proc_set_search_path.sql legacy.sql uninstall_legacy.sql legacy_minimal.sql legacy_gist.sql 
+SQL_built=postgis.sql uninstall_postgis.sql postgis_upgrade.sql postgis_proc_set_search_path.sql legacy.sql uninstall_legacy.sql legacy_minimal.sql legacy_gist.sql pipeline.sql
 DATA=../spatial_ref_sys.sql
 
 # SQL objects (files requiring pre-processing)
-SQL_objs=postgis.sql legacy.sql legacy_minimal.sql
+SQL_objs=postgis.sql legacy.sql legacy_minimal.sql pipeline_gis.sql
 
 GEOM_BACKEND_OBJ = lwgeom_geos.o
 SFCGAL_BACKEND_OBJ = lwgeom_sfcgal.o
@@ -107,7 +108,7 @@ EXTRA_CLEAN=$(SQL_OBJS) \
 	postgis_upgrade.sql.in \
 	postgis_upgrade.sql \
 	sfcgal_upgrade.sql.in \
-	sfcgal_upgrade.sql 
+	sfcgal_upgrade.sql
 
 # PGXS information
 PG_CONFIG = @PG_CONFIG@
@@ -164,11 +165,11 @@ postgis_upgrade.sql: postgis_drop_before.sql postgis_upgrade.sql.in postgis_drop
 	echo "BEGIN;" > $@
 	cat $^ >> $@
 	echo "COMMIT;" >> $@
-	
+
 postgis_proc_set_search_path.sql: postgis.sql ../utils/postgis_proc_set_search_path.pl
 	$(PERL) ../utils/postgis_proc_set_search_path.pl $< UNUSED > $@
 
-sfcgal_upgrade.sql.in: sfcgal.sql ../utils/postgis_proc_upgrade.pl 
+sfcgal_upgrade.sql.in: sfcgal.sql ../utils/postgis_proc_upgrade.pl
 	$(PERL) ../utils/postgis_proc_upgrade.pl $< UNUSED > $@
 
 sfcgal_upgrade.sql: sfcgal_upgrade.sql.in postgis_drop_after.sql

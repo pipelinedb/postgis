@@ -1,28 +1,57 @@
-Travis:
- [![Build Status](https://secure.travis-ci.org/postgis/postgis.png?branch=svn-2.2)]
- (http://travis-ci.org/postgis/postgis)
-Debbie:
- [![Build Status](http://debbie.postgis.net:8080/buildStatus/icon?job=PostGIS_2.2)]
- (http://debbie.postgis.net:8080/view/PostGIS/job/PostGIS_2.2/)
-Winnie:
- [![Build Status](http://winnie.postgis.net:1500/buildStatus/icon?job=PostGIS_2.2)]
- (http://winnie.postgis.net:1500/view/PostGIS/job/PostGIS_2.2/)
-GitLab-CI:
- [![Build Status](http://gitlab.com/ci/projects/3944/status.png?ref=svn-2.2)]
- (http://gitlab.com/ci/projects/3944?ref=svn-2.2)
+# PipelineDB GIS Extension
 
-This file is here to play nicely with modern code repository facilities.
-Actual readme is [here](README.postgis).
+This is a fork of [PostGIS](/postgis/postgis) that adds the capability of using GIS aggregates in [continuous views](http://docs.pipelinedb.com/continuous-views.html).
 
-## Official code repository, issue tracker and wiki:
-https://trac.osgeo.org/postgis/
+## Building
 
-## Official source tarball releases
-http://postgis.net/source
+Install some dependencies first:
 
-If you would like to contribute to this project, please refer to our
-[contributing guidelines](CONTRIBUTING.md).
+```
+sudo apt-get install libxml2-dev libgeos-dev libproj-dev libgdal-dev xsltproc autoconf libtool libcunit1-dev
+```
 
-## Project Home Page and Manuals
-Project homepage: http://postgis.net/
-PostGIS Manuals: http://postgis.net/documentation
+Make sure what `pipeline-config` is on your `PATH`. You can check that by running:
+
+```
+which pipeline-config
+```
+
+Now, you can build the extension libraries.
+
+```
+./autogen.sh
+./configure
+make
+sudo make install
+```
+
+## Loading
+
+Once you've installed the extension libraies, you can load the extension into a database by running:
+
+```
+-- Enable PostGIS (includes raster)
+CREATE EXTENSION postgis;
+-- Enable Topology
+CREATE EXTENSION postgis_topology;
+-- Enable PostGIS Advanced 3D
+-- and other geoprocessing algorithms
+-- sfcgal not available with all distributions
+CREATE EXTENSION postgis_sfcgal;
+-- fuzzy matching needed for Tiger
+CREATE EXTENSION fuzzystrmatch;
+-- rule based standardizer
+CREATE EXTENSION address_standardizer;
+-- example rule data set
+CREATE EXTENSION address_standardizer_data_us;
+-- Enable US Tiger Geocoder
+CREATE EXTENSION postgis_tiger_geocoder;
+```
+
+## Testing
+
+Start a PipelineDB instance on port `5432` and ensure that database `postgis_reg` does not exist. Run the following command:
+
+```
+make -s check
+```

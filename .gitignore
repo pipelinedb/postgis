@@ -2,6 +2,7 @@
 *.la
 .libs
 *.lo
+*~
 gmon.out
 install-sh
 postgis_svn_revision.h
@@ -91,6 +92,8 @@ postgis/legacy_gist.sql
 postgis/legacy_minimal.sql
 postgis/legacy.sql
 postgis/postgis.sql
+postgis/pipeline.sql
+postgis/pipeline_legacy.sql
 postgis/postgis_upgrade.sql*
 postgis/sfcgal_upgrade.sql*
 postgis/sqldefines.h
@@ -148,3 +151,7 @@ doc/sfcgal_comments.sql
 postgis/sfcgal.sql
 postgis/uninstall_sfcgal.sql
 *.pdf
+
+.cproject
+.project
+.settings/
