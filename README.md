@@ -27,7 +27,7 @@ sudo make install
 
 ## Loading
 
-Once you've installed the extension libraies, you can load the extension into a database by running:
+Once you've installed the extension libraries, you can load the extension into a database by running:
 
 ```
 -- Enable PostGIS (includes raster)
